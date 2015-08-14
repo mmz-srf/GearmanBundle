@@ -28,7 +28,7 @@ EOF;
 
     const TEMPLATE_WORKER = <<<EOF
 [program:worker%num_worker%]
-command=/usr/bin/php %project_dir%/app/console supertag:gearman:run-worker --env=%env%
+command=/usr/bin/php %project_dir%/app/console supertag:gearman:run-worker --env=%env%%debug%
 process_name=%namespace%gearman_worker%num_worker%
 numprocs=1
 directory=%project_dir%
@@ -53,7 +53,7 @@ The <info>%command.name%</info> command generates supervisor config to watch
 over gearman workers, respawn them in case of unexpected errors:
 
 <info>php %command.full_name% www-data</info>
-<info>php %command.full_name% --env=prod www-data --num-worrkers=2</info>
+<info>php %command.full_name% --env=prod --no-debug www-data --num-worrkers=2</info>
 EOF
         );
     }
@@ -65,13 +65,14 @@ EOF
         $root_dir = realpath($this->getContainer()->getParameter('kernel.root_dir'));
         $env = $this->getContainer()->getParameter('kernel.environment');
         $namespace = $this->getContainer()->getParameter('supertag_gearman.namespace');
+        $debug = $input->getOption('no-debug') ? ' --no-debug' : '';
 
         $numWorkers = $input->hasOption('num-workers') ? intval($input->getOption('num-workers')) : 1;
         if ($numWorkers <= 0) {
             $numWorkers = 1;
         }
         $workers = '';
-        $replace = compact('project_dir', 'root_dir', 'user', 'env', 'namespace');
+        $replace = compact('project_dir', 'root_dir', 'user', 'env', 'namespace', 'debug');
         for ($i = 0; $i < $numWorkers; $i++) {
             $replace['num_worker'] = $i + 1;
             $workers .= ($i === 0 ? '' : "\n\n") . str_replace(
