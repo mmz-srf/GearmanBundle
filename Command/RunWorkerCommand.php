@@ -2,21 +2,21 @@
 
 namespace Supertag\Bundle\GearmanBundle\Command;
 
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Process\ProcessBuilder;
-use Symfony\Component\Process\Process;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
-use Symfony\Component\Finder\Finder;
-use Symfony\Component\HttpFoundation\ParameterBag;
-use Supertag\Bundle\GearmanBundle\Event\JobFailedEvent;
+use GearmanJob;
+use GearmanWorker;
+use ReflectionClass;
+use RuntimeException;
 use Supertag\Bundle\GearmanBundle\Event\JobBeginEvent;
 use Supertag\Bundle\GearmanBundle\Event\JobEndEvent;
+use Supertag\Bundle\GearmanBundle\Event\JobFailedEvent;
 use Supertag\Bundle\GearmanBundle\Workload;
-use GearmanWorker;
-use GearmanJob;
-use RuntimeException, ReflectionClass, ReflectionMethod;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\HttpFoundation\ParameterBag;
+use Symfony\Component\Process\ProcessBuilder;
 
 class RunWorkerCommand extends ContainerAwareCommand
 {
@@ -107,7 +107,7 @@ EOF
         $gmworker->addServers($this->getContainer()->getParameter('supertag_gearman.servers'));
 
         foreach ($this->jobs as $job) {
-            $this->registerJob($output, $gmworker, $job);
+            $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
         }
 
         while ($gmworker->work()) {}
@@ -120,7 +120,7 @@ EOF
      * @param GearmanWorker $gmw
      * @param GearmanJobCommandInterface $job
      */
-    private function registerJob(OutputInterface $output, GearmanWorker $gmw, GearmanJobCommandInterface $job)
+    private function registerJob(OutputInterface $output, GearmanWorker $gmw, GearmanJobCommandInterface $job, $debug)
     {
         $disp = $this->getContainer()->get('event_dispatcher');
         $gmc = $this->getContainer()->get('supertag_gearman.client');
@@ -130,7 +130,7 @@ EOF
         $output->writeLn("{$now} -> Registering job: <comment>{$job->getName()}</comment>");
 
         $self = $this;
-        $gmw->addFunction($pname, function(GearmanJob $gmj) use ($job, $gmc, $output, $disp, $self) {
+        $gmw->addFunction($pname, function(GearmanJob $gmj) use ($job, $gmc, $output, $disp, $self, $debug) {
             $result = null;
             $hash = sha1($job->getName() . $gmj->workload());
             $lastOutput = $cmd = '';
@@ -140,7 +140,7 @@ EOF
                 $disp->dispatch(JobBeginEvent::NAME, $event);
 
                 $jobArgs = unserialize($gmj->workload());
-                $commandArgs = $self->prepareCommandArguments($jobArgs);
+                $commandArgs = $self->prepareCommandArguments($jobArgs, $debug);
                 // will validate the input arguments and options
                 $input = new ArrayInput($jobArgs, $job->getDefinition());
                 // convert parameters to string, console v2.2 does not have to string conversion yet
@@ -178,7 +178,7 @@ EOF
                     $self->retries->remove($hash);
                     // fire an event to take some action with failed job
                     $lastOutput = 'Exception -> ' . $e->getMessage() . " with last output:\n\n" . $lastOutput;
-                    $args = $self->prepareCommandArguments(unserialize($gmj->workload()), false);
+                    $args = $self->prepareCommandArguments(unserialize($gmj->workload()), $debug, false);
                     $event = new JobFailedEvent($job, $args, $lastOutput);
                     $disp->dispatch(JobFailedEvent::NAME, $event);
                 }
@@ -205,22 +205,28 @@ EOF
         return $pb->add('php')->add($this->getContainer()->getParameter('kernel.root_dir').'/console');
     }
 
-    public function prepareCommandArguments(array $data, $withEnv = true)
+    public function prepareCommandArguments(array $data, $debug = false, $withEnv = true)
     {
         $params = array();
         foreach ($data as $param => $val) {
             if ($param && '-' === $param[0]) {
-                $params[] = $param . ('' != $val ? '='.$val : '');
+                $params[] = $param . ('' != $val ? '=' . $val : '');
             } else {
                 $params[] = $val;
             }
         }
+
         if ($withEnv) {
-            $params[] = '--env='.$this->env;
+            $params[] = '--env=' . $this->env;
             if ($this->verbose) {
                 $params[] = '--verbose';
             }
         }
+
+        if (!$debug) {
+            $params[] = '--no-debug';
+        }
+
         return $params;
     }
 }
