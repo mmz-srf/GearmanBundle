@@ -110,7 +110,7 @@ EOF
             $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
         }
 
-		while (true) {
+		for ($i = 1; $i <= 100; $i++) {
 			if ($gmworker->work()){
 			} else {
 				if ($gmworker->returnCode() === GEARMAN_TIMEOUT ) {
