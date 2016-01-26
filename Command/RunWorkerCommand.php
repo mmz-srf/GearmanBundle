@@ -110,7 +110,18 @@ EOF
             $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
         }
 
-        while ($gmworker->work()) {}
+		while ($gmworker->work() || GEARMAN_TIMEOUT == $gmworker->returnCode()) {
+		   if (GEARMAN_TIMEOUT == $gmworker->returnCode()) {
+		       $echo = @$gmworker->echo(1);
+		       if (!$echo) {
+		           echo 'Failed to connect to Gearman Gerver.'. PHP_EOL;
+		           break;
+		       }
+		   } elseif (GEARMAN_SUCCESS != $gmworker->returnCode()) {
+		       break;
+		   }
+		}
+
     }
 
     /**
