@@ -65,7 +65,7 @@ kernel bundles and registers them as gearman jobs.
 <info>php %command.full_name%</info>
 <info>php %command.full_name% --env=prod</info>
 EOF
-        );
+            );
     }
 
     /**
@@ -74,16 +74,16 @@ EOF
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         foreach ($this->getContainer()->get('kernel')->getBundles() as $bundle) {
-            if (is_dir($cmdDir = $bundle->getPath().'/Command')) {
+            if (is_dir($cmdDir = $bundle->getPath() . '/Command')) {
                 $finder = new Finder;
                 $finder->files()->in($cmdDir)->name('*Command.php');
-                $prefix = $bundle->getNamespace().'\\Command';
+                $prefix = $bundle->getNamespace() . '\\Command';
                 foreach ($finder as $file) {
                     $ns = $prefix;
                     if ($relativePath = $file->getRelativePath()) {
-                        $ns .= '\\'.strtr($relativePath, '/', '\\');
+                        $ns .= '\\' . strtr($relativePath, '/', '\\');
                     }
-                    $class = $ns.'\\'.$file->getBasename('.php');
+                    $class = $ns . '\\' . $file->getBasename('.php');
                     $r = new ReflectionClass($class);
                     $ok = $r->isSubclassOf('Symfony\\Component\\Console\\Command\\Command')
                         && !$r->isAbstract() && !$r->getConstructor()->getNumberOfRequiredParameters()
@@ -110,21 +110,25 @@ EOF
             $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
         }
 
-		for ($i = 1; $i <= 100; $i++) {
-			if ($gmworker->work()){
-			} else {
-				if ($gmworker->returnCode() === GEARMAN_TIMEOUT ) {
-	 		       $echo = @$gmworker->echo(1);
-	 		       if (!$echo) {
-	 		           $output->writeLn('Failed to connect to Gearman Server.');
-	 		           break;
-	 		       }
-				} else if ($gmworker->returnCode() !== GEARMAN_SUCCESS) {
- 		           $output->writeLn('Failed to work.');
-				}
-			}
-		}
+        for ($i = 1; $i <= 100; $i++) {
+            if ($gmworker->work()) {
+                continue;
+            }
 
+            switch ($gmworker->returnCode()) {
+                case GEARMAN_TIMEOUT: {
+                    $echo = @$gmworker->echo(1);
+                    if (!$echo) {
+                        $output->writeLn('Failed to connect to Gearman Server.');
+                        break(2);
+                    }
+                }
+                    break;
+                default: {
+                    $output->writeLn('Failed to work.');
+                }
+            }
+        }
     }
 
     /**
@@ -144,7 +148,7 @@ EOF
         $output->writeLn("{$now} -> Registering job: <comment>{$job->getName()}</comment>");
 
         $self = $this;
-        $gmw->addFunction($pname, function(GearmanJob $gmj) use ($job, $gmc, $output, $disp, $self, $debug) {
+        $gmw->addFunction($pname, function (GearmanJob $gmj) use ($job, $gmc, $output, $disp, $self, $debug) {
             $result = null;
             $hash = sha1($job->getName() . $gmj->workload());
             $lastOutput = $cmd = '';
@@ -166,7 +170,7 @@ EOF
                 $output->writeLn(date('Y-m-d H:i:s') . " -> Running job command: {$cmd}");
 
                 // output read callback
-                $cb = function($type, $text) use($output, &$lastOutput) {
+                $cb = function ($type, $text) use ($output, &$lastOutput) {
                     $output->writeLn($text);
                     $lastOutput .= $text;
                 };
@@ -182,7 +186,7 @@ EOF
                 // for retries we use a specific hash to determine how many retries were
                 // applied already. hash is generated from {jobName}{workload} sha-1
                 $numRetriesLeft = $self->retries->has($hash) ? $self->retries->get($hash) : $job->getNumRetries();
-                $msg .= "Number of retries left: <info>".($numRetriesLeft - 1)."</info>";
+                $msg .= "Number of retries left: <info>" . ($numRetriesLeft - 1) . "</info>";
                 $output->writeLn(date('Y-m-d H:i:s') . ' -> ' . $msg);
                 if ($numRetriesLeft > 1) {
                     $self->retries->set($hash, $numRetriesLeft - 1);
@@ -212,11 +216,11 @@ EOF
 
         // PHP wraps the process in "sh -c" by default, but we need to control
         // the process directly.
-        if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
+        if (!defined('PHP_WINDOWS_VERSION_MAJOR')) {
             $pb->add('exec');
         }
 
-        return $pb->add('php')->add($this->getContainer()->getParameter('kernel.root_dir').'/console');
+        return $pb->add('php')->add($this->getContainer()->getParameter('kernel.root_dir') . '/console');
     }
 
     public function prepareCommandArguments(array $data, $debug = false, $withEnv = true)
