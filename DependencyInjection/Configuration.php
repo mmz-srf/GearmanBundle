@@ -16,7 +16,8 @@ class Configuration implements ConfigurationInterface
             ->children()
                 ->scalarNode('servers')->defaultValue('localhost:4730')->end()
                 ->scalarNode('namespace')->defaultValue('')->end()
-            ->end()
+                ->scalarNode('worker_timeout')->defaultValue(-1)->end()
+          ->end()
         ;
         return $builder;
     }
