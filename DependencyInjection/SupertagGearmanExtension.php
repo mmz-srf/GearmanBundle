@@ -24,5 +24,6 @@ class SupertagGearmanExtension extends Extension
 
         $container->setParameter('supertag_gearman.servers', $config['servers']);
         $container->setParameter('supertag_gearman.namespace', $config['namespace']);
+        $container->setParameter('supertag_gearman.worker_timeout', $config['worker_timeout']);
     }
 }

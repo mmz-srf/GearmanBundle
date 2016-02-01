@@ -37,6 +37,7 @@ This will be the default configuration. If you want you can override these in `a
 supertag_gearman:
     servers: "localhost:4730" # gearman servers to use separated by comma, example "localhost:4730,other-domain.com:4730"
     namespace: ""             # a namespace for project jobs, will prefix all job names to prevent conflicts
+    worker_timeout: 5000      # timeout
 ```
 
 ### Register SupertagGearmanBundle in your application kernel

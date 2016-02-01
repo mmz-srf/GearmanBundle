@@ -105,6 +105,7 @@ EOF
         $this->retries = new ParameterBag;
         $gmworker = new GearmanWorker;
         $gmworker->addServers($this->getContainer()->getParameter('supertag_gearman.servers'));
+        $gmworker->setTimeout($this->getContainer()->getParameter('supertag_gearman.worker_timeout'));
 
         foreach ($this->jobs as $job) {
             $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
