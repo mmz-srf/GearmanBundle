@@ -103,30 +103,26 @@ EOF
         $this->verbose = $input->getOption('verbose');
         $this->env = $input->getOption('env');
         $this->retries = new ParameterBag;
-        $gmworker = new GearmanWorker;
-        $gmworker->addServers($this->getContainer()->getParameter('supertag_gearman.servers'));
-        $gmworker->setTimeout($this->getContainer()->getParameter('supertag_gearman.worker_timeout'));
-
-        foreach ($this->jobs as $job) {
-            $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
-        }
 
         for ($i = 1; $i <= 100; $i++) {
-            if ($gmworker->work()) {
-                continue;
+            $gmworker = new GearmanWorker;
+            $gmworker->addServers($this->getContainer()->getParameter('supertag_gearman.servers'));
+            $gmworker->setTimeout($this->getContainer()->getParameter('supertag_gearman.worker_timeout'));
+
+            foreach ($this->jobs as $job) {
+                $this->registerJob($output, $gmworker, $job, !$input->getOption('no-debug'));
             }
 
-            switch ($gmworker->returnCode()) {
-                case GEARMAN_TIMEOUT: {
-                    $echo = @$gmworker->echo(1);
-                    if (!$echo) {
-                        $output->writeLn('Failed to connect to Gearman Server.');
-                        break(2);
-                    }
-                }
+            // work terminates if: timeout is reached OR a registered job/task has been executed
+            $result = $gmworker->work();
+            $returnCode = $gmworker->returnCode();
+            $output->writeln("gearman worker finished work(): result=${result} returnCode=${returnCode}");
+
+            if ($returnCode === GEARMAN_TIMEOUT) {
+                $output->writeLn($gmworker->error());
+                $echo = @$gmworker->echo(1);
+                if (!$echo) {
                     break;
-                default: {
-                    $output->writeLn('Failed to work.');
                 }
             }
         }
