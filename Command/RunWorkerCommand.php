@@ -105,7 +105,7 @@ EOF
         $this->retries = new ParameterBag;
 
         for ($i = 1; $i <= 100; $i++) {
-            $gmworker = new GearmanWorker;
+            $gmworker = new GearmanWorker();
             $gmworker->addServers($this->getContainer()->getParameter('supertag_gearman.servers'));
             $gmworker->setTimeout($this->getContainer()->getParameter('supertag_gearman.worker_timeout'));
 

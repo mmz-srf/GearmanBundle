@@ -2,9 +2,10 @@
 
 namespace Supertag\Bundle\GearmanBundle\Tests\Functional;
 
+use PHPUnit\Framework\TestCase;
 use Supertag\Bundle\GearmanBundle\Workload;
 
-class JobQueueTest extends \PHPUnit_Framework_TestCase
+class JobQueueTest extends TestCase
 {
     private $logFile, $pid;
 
@@ -26,9 +27,9 @@ class JobQueueTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         exec("kill {$this->pid}");
-        @unlink($this->logFile);
+        //@unlink($this->logFile);
         if (file_exists($appLogFile = dirname($this->logFile) . '/app.log')) {
-            @unlink($appLogFile);
+            //@unlink($appLogFile);
         }
     }
 
@@ -56,7 +57,7 @@ class JobQueueTest extends \PHPUnit_Framework_TestCase
         $this->assertReceivedLogMessage($this->logFile, "Registering job: job:deploy-project");
 
         $gmc = $this->createGearmanClient();
-        $gmc->doBackground('job:deploy-project', new Workload);
+        $gmc->doBackground('job:deploy-project', new Workload());
 
         $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 4");
         $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 3");
@@ -73,7 +74,7 @@ class JobQueueTest extends \PHPUnit_Framework_TestCase
         $this->assertReceivedLogMessage($this->logFile, "Registering job: job:failing");
 
         $gmc = $this->createGearmanClient();
-        $gmc->doBackground('job:failing', new Workload);
+        $gmc->doBackground('job:failing', new Workload());
 
         $this->assertReceivedLogMessage($this->logFile, "Failed: Failed while processing..: job:failing --env=test");
         $this->assertReceivedLogMessage($this->logFile, "Number of retries left: 1");
