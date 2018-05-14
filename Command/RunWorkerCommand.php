@@ -16,6 +16,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\ParameterBag;
+use Symfony\Component\Process\Process;
 use Symfony\Component\Process\ProcessBuilder;
 
 class RunWorkerCommand extends ContainerAwareCommand
@@ -156,16 +157,26 @@ EOF
 
                 $jobArgs = unserialize($gmj->workload());
                 $commandArgs = $self->prepareCommandArguments($jobArgs, $debug);
+
                 // will validate the input arguments and options
                 $input = new ArrayInput($jobArgs, $job->getDefinition());
                 // convert parameters to string, console v2.2 does not have to string conversion yet
                 // build job command
-                $processBuilder = $self->getCommandProcessBuilder()->add($job->getName());
-                array_walk($commandArgs, array($processBuilder, 'add'));
-                $process = $processBuilder->getProcess();
+                echo "root dir: ".$self->getContainer()->getParameter('kernel.root_dir')."\n";
+                $process = new Process(
+                    array_merge([
+                        $self->getContainer()->getParameter('kernel.root_dir').'/console',
+                        $job->getName()
+                    ], $commandArgs)
+                );
+
+                $process->setWorkingDirectory($self->getContainer()->getParameter('kernel.root_dir') . "../");
+
+
+
+
                 $cmd = $job->getName() . ' ' . implode(' ', $commandArgs);
                 $output->writeLn(date('Y-m-d H:i:s') . " -> Running job command: {$cmd}");
-
                 // output read callback
                 $cb = function ($type, $text) use ($output, &$lastOutput) {
                     $output->writeLn($text);
@@ -205,19 +216,6 @@ EOF
             $gmj->sendComplete(null);
             return true;
         });
-    }
-
-    public function getCommandProcessBuilder()
-    {
-        $pb = new ProcessBuilder();
-
-        // PHP wraps the process in "sh -c" by default, but we need to control
-        // the process directly.
-        if (!defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $pb->add('exec');
-        }
-
-        return $pb->add('php')->add($this->getContainer()->getParameter('kernel.root_dir') . '/console');
     }
 
     public function prepareCommandArguments(array $data, $debug = false, $withEnv = true)

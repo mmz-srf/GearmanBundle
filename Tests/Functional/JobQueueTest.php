@@ -27,9 +27,9 @@ class JobQueueTest extends TestCase
     protected function tearDown()
     {
         exec("kill {$this->pid}");
-        //@unlink($this->logFile);
+        @unlink($this->logFile);
         if (file_exists($appLogFile = dirname($this->logFile) . '/app.log')) {
-            //@unlink($appLogFile);
+            @unlink($appLogFile);
         }
     }
 
@@ -42,8 +42,8 @@ class JobQueueTest extends TestCase
 
         $gmc = $this->createGearmanClient();
         $gmc->doBackground('job:deploy-project', new Workload(array(
+            'id' => '5',
             '--force' => null,
-            '5'
         )));
 
         $this->assertReceivedLogMessage($this->logFile, "Successfully finished project deploy");
@@ -59,11 +59,11 @@ class JobQueueTest extends TestCase
         $gmc = $this->createGearmanClient();
         $gmc->doBackground('job:deploy-project', new Workload());
 
-        $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 4");
-        $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 3");
-        $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 2");
-        $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 1");
-        $this->assertReceivedLogMessage($this->logFile, "Failed: Not enough arguments.: . Number of retries left: 0");
+        $this->assertReceivedLogMessage($this->logFile, "Number of retries left: 4");
+        $this->assertReceivedLogMessage($this->logFile, "Number of retries left: 3");
+        $this->assertReceivedLogMessage($this->logFile, "Number of retries left: 2");
+        $this->assertReceivedLogMessage($this->logFile, "Number of retries left: 1");
+        $this->assertReceivedLogMessage($this->logFile, "Number of retries left: 0");
     }
 
     /**
@@ -94,7 +94,7 @@ class JobQueueTest extends TestCase
 
         $gmc = $this->createGearmanClient();
         $gmc->doBackground('job:purify-input', new Workload(array(
-            "my entity class", // entity argument, should be escaped
+            "entity" => "my entity class", // entity argument, should be escaped
             "--fields" => "field1 field2", // fields option, should be escaped
             "--opt" => "option", // opt option, value does not need escaping
         )));
