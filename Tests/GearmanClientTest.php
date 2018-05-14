@@ -2,9 +2,10 @@
 
 namespace Supertag\Bundle\GearmanBundle\Tests;
 
+use PHPUnit\Framework\TestCase;
 use Supertag\Bundle\GearmanBundle\Client;
 
-class GearmanClientTest extends \PHPUnit_Framework_TestCase
+class GearmanClientTest extends TestCase
 {
     /**
      * @test

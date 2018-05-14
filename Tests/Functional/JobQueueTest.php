@@ -2,9 +2,10 @@
 
 namespace Supertag\Bundle\GearmanBundle\Tests\Functional;
 
+use PHPUnit\Framework\TestCase;
 use Supertag\Bundle\GearmanBundle\Workload;
 
-class JobQueueTest extends \PHPUnit_Framework_TestCase
+class JobQueueTest extends TestCase
 {
     private $logFile, $pid;
 
