@@ -213,7 +213,7 @@ EOF
             $event = new JobEndEvent($job, $gmj->workload());
             $disp->dispatch(JobEndEvent::NAME, $event);
 
-            $gmj->sendComplete(null);
+            $gmj->sendComplete('');
             return true;
         });
     }
